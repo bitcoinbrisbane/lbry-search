@@ -3,6 +3,7 @@ package index
 import (
 	"crypto/sha256"
 	"fmt"
+	"math"
 	"path/filepath"
 	"testing"
 	"time"
@@ -198,5 +199,27 @@ func must(t *testing.T, err error) {
 	t.Helper()
 	if err != nil {
 		t.Fatal(err)
+	}
+}
+
+// A fee above SQLite's signed range (it's whatever the claim's author wrote) is capped.
+func TestHugeFeeIsCapped(t *testing.T) {
+	s, err := store.Open(filepath.Join(t.TempDir(), "idx.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	paid := func(title string) []byte {
+		fee := pbBytes(6, cat(pbUint(1, 1), pbUint(3, 1<<63+5))) // LBC, high bit set
+		return cat([]byte{0}, pbBytes(1, fee), pbBytes(8, []byte(title)))
+	}
+	tx := newTx(nil, claimOut("pricey", paid("Pricey video"), 1e7))
+	id := chain.ClaimID(tx.Hash, 0)
+	must(t, ApplyBlock(s, 1, "h1", &chain.Block{Txs: []*chain.Tx{tx}}, true))
+	upd := newTx([]chain.OutPoint{out(tx, 0)}, updateOut("pricey", id, paid("Still pricey"), 1e7))
+	must(t, ApplyBlock(s, 2, "h2", &chain.Block{Txs: []*chain.Tx{upd}}, true))
+	r, err := s.Claim(id)
+	if err != nil || r == nil || r.FeeAmount != math.MaxInt64 || r.FeeCurrency != "LBC" || r.Title != "Still pricey" {
+		t.Fatalf("%+v %v", r, err)
 	}
 }

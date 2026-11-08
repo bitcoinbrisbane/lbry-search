@@ -8,6 +8,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"math"
 	"strings"
 
 	_ "github.com/mattn/go-sqlite3" // build with -tags sqlite_fts5
@@ -245,6 +246,8 @@ func (t *Tx) PutClaim(c Claim, isUpdate bool) error {
 		_ = t.tx.QueryRow(`SELECT name FROM claims WHERE claim_id = ? AND type = 'channel'`, c.ChannelID).Scan(&channelName)
 	}
 	tags, langs := strings.Join(c.Tags, " "), strings.Join(c.Languages, " ")
+	// SQLite integers are signed; a fee above that is junk anyone can put in a claim.
+	fee := int64(min(c.FeeAmount, math.MaxInt64))
 	var exists bool
 	_ = t.tx.QueryRow(`SELECT 1 FROM claims WHERE claim_id = ?`, c.ClaimID).Scan(&exists)
 	var err error
@@ -255,14 +258,14 @@ func (t *Tx) PutClaim(c Claim, isUpdate bool) error {
 			WHERE claim_id=?`,
 			c.Name, c.TxID, c.Nout, c.Amount, t.height, c.Type, c.Version, c.ChannelID, channelName, c.Title,
 			c.Description, c.Author, tags, langs, c.Thumbnail, c.MediaType, c.Duration, c.ReleaseTime, c.RepostOf,
-			c.FeeAmount, c.FeeCurrency, c.ClaimID)
+			fee, c.FeeCurrency, c.ClaimID)
 	} else if !isUpdate {
 		_, err = t.tx.Exec(`INSERT INTO claims(claim_id, name, txid, nout, amount, height, updated_height, type, version,
 			channel_id, channel_name, title, description, author, tags, languages, thumbnail, media_type, duration,
 			release_time, repost_of, fee_amount, fee_currency) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
 			c.ClaimID, c.Name, c.TxID, c.Nout, c.Amount, t.height, t.height, c.Type, c.Version, c.ChannelID, channelName,
 			c.Title, c.Description, c.Author, tags, langs, c.Thumbnail, c.MediaType, c.Duration, c.ReleaseTime,
-			c.RepostOf, c.FeeAmount, c.FeeCurrency)
+			c.RepostOf, fee, c.FeeCurrency)
 	} else {
 		return nil // an update of a claim we never saw (shouldn't happen from genesis)
 	}
