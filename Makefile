@@ -1,0 +1,9 @@
+TAGS = sqlite_fts5
+
+.PHONY: build test vet
+build:
+	CGO_ENABLED=1 go build -tags $(TAGS) -o bin/ ./cmd/...
+test:
+	CGO_ENABLED=1 go test -tags $(TAGS) ./...
+vet:
+	CGO_ENABLED=1 go vet -tags $(TAGS) ./...
