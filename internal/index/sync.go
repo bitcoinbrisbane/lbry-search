@@ -17,6 +17,10 @@ type Syncer struct {
 	Node    *lbcd.Client
 	Workers int           // blocks fetched in parallel during catch-up
 	Poll    time.Duration // how often to look for new blocks at the tip
+	// From is the height an empty index starts at (0 = genesis). Starting later,
+	// for a node that has already pruned the early blocks, leaves out the claims
+	// created below it; their updates and supports are skipped.
+	From int64
 
 	pruneHold bool // the node prunes and accepts setprunehold
 }
@@ -39,12 +43,16 @@ func (s *Syncer) Run(ctx context.Context) error {
 	lastLog := time.Now()
 	// On a pruning node, ask it to keep blocks we haven't read yet, and make
 	// sure it still has the next one we need.
-	if have, _, err := s.Store.Tip(); err == nil {
-		holdErr := s.Node.SetPruneHold(ctx, have)
+	if have, empty, err := s.tip(); err == nil {
+		// A negative height lifts the hold, so an index at genesis holds at 0.
+		holdErr := s.Node.SetPruneHold(ctx, max(have, 0))
 		if pruneHeight, err := s.Node.PruneHeight(ctx); err == nil && pruneHeight > have+1 {
-			return fmt.Errorf("lbcd has pruned blocks below %d but the index is only at %d: "+
-				"index from a node that keeps every block (or start the indexer with the node)",
-				pruneHeight, have)
+			hint := "index from a node that keeps every block (or start the indexer with the node)"
+			if empty {
+				hint += fmt.Sprintf(", or start this empty index mid-chain with -from %d", pruneHeight)
+			}
+			return fmt.Errorf("lbcd has pruned blocks below %d but the index is only at %d: %s",
+				pruneHeight, have, hint)
 		}
 		s.pruneHold = holdErr == nil
 	}
@@ -57,7 +65,7 @@ func (s *Syncer) Run(ctx context.Context) error {
 			}
 			continue
 		}
-		have, _, err := s.Store.Tip()
+		have, _, err := s.tip()
 		if err != nil {
 			return err
 		}
@@ -100,6 +108,15 @@ func (s *Syncer) Run(ctx context.Context) error {
 	}
 }
 
+// tip is the last indexed height; an empty index is at From-1.
+func (s *Syncer) tip() (height int64, empty bool, err error) {
+	height, _, err = s.Store.Tip()
+	if err == nil && height < 0 {
+		return max(s.From, 0) - 1, true, nil
+	}
+	return height, false, err
+}
+
 // checkLink rolls back if the block doesn't build on what we indexed below it.
 func (s *Syncer) checkLink(ctx context.Context, f fetched) (bool, error) {
 	if f.height == 0 {
@@ -119,7 +136,7 @@ func (s *Syncer) checkLink(ctx context.Context, f fetched) (bool, error) {
 		if err != nil {
 			return false, err
 		}
-		if ours == theirs {
+		if ours == theirs || ours == "" { // "" is below where a -from index starts
 			log.Printf("reorg: rolling back to %d", h)
 			return true, s.Store.RollbackTo(h)
 		}
