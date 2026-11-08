@@ -1,0 +1,12 @@
+[Unit]
+Description=lbcd (LBRY full node)
+After=network-online.target
+
+[Service]
+User=lbry
+ExecStart=/usr/local/bin/lbcd --configfile=/home/lbry/.lbcd/lbcd.conf
+Restart=on-failure
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

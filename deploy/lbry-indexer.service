@@ -1,0 +1,14 @@
+[Unit]
+Description=lbry-indexer (lbcd -> SQLite search index)
+After=lbcd.service
+Requires=lbcd.service
+
+[Service]
+User=lbry
+EnvironmentFile=/etc/lbry-search.env
+ExecStart=/usr/local/bin/lbry-indexer -db /var/lib/lbry-search/lbry-search.db -rpc http://127.0.0.1:9245
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

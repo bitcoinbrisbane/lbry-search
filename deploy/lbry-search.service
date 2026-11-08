@@ -1,0 +1,12 @@
+[Unit]
+Description=lbry-search (Lighthouse-compatible search API)
+After=lbry-indexer.service
+
+[Service]
+User=lbry
+ExecStart=/usr/local/bin/lbry-search -db /var/lib/lbry-search/lbry-search.db -addr 127.0.0.1:8080 \
+  -blocklist https://raw.githubusercontent.com/bitcoinbrisbane/carrel-ios/main/moderation/blocklist.json
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,13 @@
+[Unit]
+Description=lbry-daemon (LBRY SDK in Go) using lbry-search for text search
+After=lbry-search.service
+
+[Service]
+User=lbry
+Environment=LBRY_SEARCH_URL=http://127.0.0.1:8080/search
+# Environment=LBRY_HUB=localhost:50001   # once we run our own hub
+ExecStart=/usr/local/bin/lbryd
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

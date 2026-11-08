@@ -64,8 +64,11 @@ make                       # go build -tags sqlite_fts5 ./cmd/...
   -blocklist https://raw.githubusercontent.com/bitcoinbrisbane/carrel-ios/main/moderation/blocklist.json
 ```
 
-lbcd needs its RPC server on (`rpcuser`/`rpcpass`); a pruned node won't do, since the
-indexer reads every block. The server opens the index read-only, so both run side by side.
+lbcd needs its RPC server on (`rpcuser`/`rpcpass`, and `notls=1` for plain HTTP on
+localhost; see `deploy/lbcd.conf`); a pruned node won't do, since the indexer reads every
+block. `deploy/` has systemd units for lbcd, the indexer, the server and
+[lbry-daemon](https://github.com/LBRYFoundation/lbry-daemon), which can send `claim_search`
+text queries here with `LBRY_SEARCH_URL`. The server opens the index read-only, so both run side by side.
 While catching up the indexer skips undo records until it's within 200 blocks of the tip.
 
 ```sh
