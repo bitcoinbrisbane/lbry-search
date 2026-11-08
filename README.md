@@ -69,6 +69,11 @@ localhost; see `deploy/lbcd.conf`); a pruned node won't do, since the indexer re
 block. `deploy/` has systemd units for lbcd, the indexer, the server and
 [lbry-daemon](https://github.com/LBRYFoundation/lbry-daemon), which can send `claim_search`
 text queries here with `LBRY_SEARCH_URL`. The server opens the index read-only, so both run side by side.
+
+**Pruned nodes.** With [bitcoinbrisbane/lbcd](https://github.com/bitcoinbrisbane/lbcd)'s
+`--prune`, the indexer calls `setprunehold` as it goes (every 100 blocks and at the tip), so
+the node never deletes blocks it hasn't indexed yet. Start the indexer with the node: if the
+node has already pruned blocks the index still needs, it stops with a clear error.
 While catching up the indexer skips undo records until it's within 200 blocks of the tip.
 
 ```sh

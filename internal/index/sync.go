@@ -17,6 +17,8 @@ type Syncer struct {
 	Node    *lbcd.Client
 	Workers int           // blocks fetched in parallel during catch-up
 	Poll    time.Duration // how often to look for new blocks at the tip
+
+	pruneHold bool // the node prunes and accepts setprunehold
 }
 
 type fetched struct {
@@ -35,6 +37,17 @@ func (s *Syncer) Run(ctx context.Context) error {
 		s.Poll = 10 * time.Second
 	}
 	lastLog := time.Now()
+	// On a pruning node, ask it to keep blocks we haven't read yet, and make
+	// sure it still has the next one we need.
+	if have, _, err := s.Store.Tip(); err == nil {
+		holdErr := s.Node.SetPruneHold(ctx, have)
+		if pruneHeight, err := s.Node.PruneHeight(ctx); err == nil && pruneHeight > have+1 {
+			return fmt.Errorf("lbcd has pruned blocks below %d but the index is only at %d: "+
+				"index from a node that keeps every block (or start the indexer with the node)",
+				pruneHeight, have)
+		}
+		s.pruneHold = holdErr == nil
+	}
 	for {
 		tip, err := s.Node.BlockCount(ctx)
 		if err != nil {
@@ -72,6 +85,9 @@ func (s *Syncer) Run(ctx context.Context) error {
 			keepUndo := f.height > tip-store.UndoDepth
 			if err := ApplyBlock(s.Store, f.height, f.hash, f.block, keepUndo); err != nil {
 				return fmt.Errorf("apply %d: %w", f.height, err)
+			}
+			if s.pruneHold && (f.height%100 == 0 || f.height == tip) {
+				_ = s.Node.SetPruneHold(ctx, f.height)
 			}
 			if time.Since(lastLog) > 15*time.Second || f.height == tip {
 				log.Printf("indexed %d / %d", f.height, tip)

@@ -67,6 +67,29 @@ func (c *Client) BlockHash(ctx context.Context, height int64) (string, error) {
 	return h, c.call(ctx, "getblockhash", []any{height}, &h)
 }
 
+// SetPruneHold tells a pruning lbcd not to delete blocks above height until
+// we've read them (bitcoinbrisbane/lbcd's setprunehold). On a node without
+// pruning, or without the RPC, this returns an error the caller can ignore.
+func (c *Client) SetPruneHold(ctx context.Context, height int64) error {
+	var out any
+	return c.call(ctx, "setprunehold", []any{height}, &out)
+}
+
+// PruneHeight is the lowest height the node still has the block for (0 if not pruned).
+func (c *Client) PruneHeight(ctx context.Context) (int64, error) {
+	var info struct {
+		Pruned      bool  `json:"pruned"`
+		PruneHeight int64 `json:"pruneheight"`
+	}
+	if err := c.call(ctx, "getblockchaininfo", nil, &info); err != nil {
+		return 0, err
+	}
+	if !info.Pruned {
+		return 0, nil
+	}
+	return info.PruneHeight, nil
+}
+
 // RawBlock is getblock <hash> 0: the serialized block.
 func (c *Client) RawBlock(ctx context.Context, hash string) ([]byte, error) {
 	var h string
