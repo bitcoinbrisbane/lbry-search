@@ -15,7 +15,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/LBRYFoundation/lbry-search/internal/store"
+	"github.com/bitcoinbrisbane/lbry-search/internal/store"
 )
 
 type server struct {

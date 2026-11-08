@@ -13,9 +13,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/LBRYFoundation/lbry-search/internal/index"
-	"github.com/LBRYFoundation/lbry-search/internal/lbcd"
-	"github.com/LBRYFoundation/lbry-search/internal/store"
+	"github.com/bitcoinbrisbane/lbry-search/internal/index"
+	"github.com/bitcoinbrisbane/lbry-search/internal/lbcd"
+	"github.com/bitcoinbrisbane/lbry-search/internal/store"
 )
 
 func main() {

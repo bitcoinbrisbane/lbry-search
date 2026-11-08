@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/LBRYFoundation/lbry-search/internal/chain"
-	"github.com/LBRYFoundation/lbry-search/internal/store"
+	"github.com/bitcoinbrisbane/lbry-search/internal/chain"
+	"github.com/bitcoinbrisbane/lbry-search/internal/store"
 )
 
 // --- building claims and transactions by hand ---

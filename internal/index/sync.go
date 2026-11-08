@@ -6,9 +6,9 @@ import (
 	"log"
 	"time"
 
-	"github.com/LBRYFoundation/lbry-search/internal/chain"
-	"github.com/LBRYFoundation/lbry-search/internal/lbcd"
-	"github.com/LBRYFoundation/lbry-search/internal/store"
+	"github.com/bitcoinbrisbane/lbry-search/internal/chain"
+	"github.com/bitcoinbrisbane/lbry-search/internal/lbcd"
+	"github.com/bitcoinbrisbane/lbry-search/internal/store"
 )
 
 // Syncer follows lbcd's best chain into the store.

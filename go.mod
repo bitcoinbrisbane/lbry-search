@@ -1,4 +1,4 @@
-module github.com/LBRYFoundation/lbry-search
+module github.com/bitcoinbrisbane/lbry-search
 
 go 1.22
 

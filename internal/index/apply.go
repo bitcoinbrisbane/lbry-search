@@ -5,9 +5,9 @@ package index
 import (
 	"fmt"
 
-	"github.com/LBRYFoundation/lbry-search/internal/chain"
-	"github.com/LBRYFoundation/lbry-search/internal/claim"
-	"github.com/LBRYFoundation/lbry-search/internal/store"
+	"github.com/bitcoinbrisbane/lbry-search/internal/chain"
+	"github.com/bitcoinbrisbane/lbry-search/internal/claim"
+	"github.com/bitcoinbrisbane/lbry-search/internal/store"
 )
 
 // ApplyBlock writes one block's claim activity at height. keepUndo makes it possible
