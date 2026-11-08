@@ -4,6 +4,7 @@
 //	GET /search?s=sailing&size=20&from=0[&claimType=stream|channel][&mediaType=video][&maxDuration=180][&minDuration=181]
 //	GET /autocomplete?s=sail
 //	GET /status
+//	POST /graphql (GET for queries and, in a browser, GraphiQL)
 package main
 
 import (
@@ -15,6 +16,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/bitcoinbrisbane/lbry-search/internal/gql"
 	"github.com/bitcoinbrisbane/lbry-search/internal/store"
 )
 
@@ -27,6 +29,7 @@ func main() {
 	dbPath := flag.String("db", "lbry-search.db", "SQLite index file (written by lbry-indexer)")
 	addr := flag.String("addr", ":8080", "listen address")
 	blocklist := flag.String("blocklist", "", "moderation list URL (JSON with claims and channels arrays), refreshed every 10 minutes")
+	graphiql := flag.Bool("graphiql", true, "serve GraphiQL at /graphql to browsers")
 	flag.Parse()
 
 	s, err := store.OpenReadOnly(*dbPath)
@@ -38,6 +41,11 @@ func main() {
 	mux.HandleFunc("/search", srv.search(false))
 	mux.HandleFunc("/autocomplete", srv.search(true))
 	mux.HandleFunc("/status", srv.status)
+	api, err := gql.New(s, srv.blocked)
+	if err != nil {
+		log.Fatal(err)
+	}
+	mux.HandleFunc("/graphql", api.Handler(*graphiql))
 	log.Printf("lbry-search on %s", *addr)
 	log.Fatal(http.ListenAndServe(*addr, cors(mux)))
 }

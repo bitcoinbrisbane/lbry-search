@@ -55,6 +55,7 @@ CREATE TABLE IF NOT EXISTS claims (
 	abandoned      INTEGER NOT NULL DEFAULT 0
 );
 CREATE INDEX IF NOT EXISTS claims_channel ON claims(channel_id);
+CREATE INDEX IF NOT EXISTS claims_channel_height ON claims(channel_id, height);
 CREATE INDEX IF NOT EXISTS claims_name ON claims(name);
 CREATE TABLE IF NOT EXISTS outputs (
 	outpoint TEXT PRIMARY KEY,                 -- txid:nout

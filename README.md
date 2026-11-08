@@ -53,6 +53,31 @@ Results are Lighthouse's `[{"name", "claimId"}]` plus `title`, `channel`,
 and `score`. `-blocklist <url>` hides claim and channel IDs from a moderation list
 (e.g. Carrel's `moderation/blocklist.json`), refreshed every 10 minutes.
 
+## GraphQL
+
+`POST /graphql` (or `GET /graphql?query=…`, cached for a minute). Open `/graphql` in a
+browser for GraphiQL, with the schema docs and autocompletion (`-graphiql=false` turns it off).
+
+```graphql
+{
+  search(text: "sailing", first: 10, type: STREAM, mediaType: "video", maxDuration: 600) {
+    nodes { id title url duration thumbnail stakedDewies channel { name title } }
+    pageInfo { hasNextPage endCursor }   # pass endCursor as `after` for the next page
+  }
+  channel(id: "…") { title claims(first: 20) { nodes { title releaseTime } } }
+  claim(id: "…") { title description tags languages mediaType fee { amount currency } repostOf { url } }
+  autocomplete(text: "sail") { name title }
+  status { height hash }
+}
+```
+
+- Same index and ranking as the REST API, and the blocklist applies everywhere: blocked
+  claims and channels' claims don't appear, and `claim`/`channel` return null for them.
+- Pages are up to 100 items; a channel's claims come newest first. Amounts are strings in
+  dewies (1 LBC = 10^8), since they don't fit GraphQL's 32-bit `Int`.
+- Limits per query: 16 KB, 10 levels deep, and 20,000 fields counting each list item
+  (so `search(first: 100)` with `channel { claims(first: 100) }` under it is refused).
+
 ## Run
 
 Needs Go 1.22+ and a C compiler (SQLite via `mattn/go-sqlite3`, built with FTS5):
@@ -65,8 +90,7 @@ make                       # go build -tags sqlite_fts5 ./cmd/...
 ```
 
 lbcd needs its RPC server on (`rpcuser`/`rpcpass`, and `notls=1` for plain HTTP on
-localhost; see `deploy/lbcd.conf`); a pruned node won't do, since the indexer reads every
-block. `deploy/` has systemd units for lbcd, the indexer, the server and
+localhost; see `deploy/lbcd.conf`). `deploy/` has systemd units for lbcd, the indexer, the server and
 [lbry-daemon](https://github.com/LBRYFoundation/lbry-daemon), which can send `claim_search`
 text queries here with `LBRY_SEARCH_URL`. The server opens the index read-only, so both run side by side.
 
@@ -84,7 +108,8 @@ make test                  # go test -tags sqlite_fts5 ./...
 
 ```
 cmd/lbry-indexer   follow lbcd, write the index
-cmd/lbry-search    HTTP server
+cmd/lbry-search    HTTP server (REST and GraphQL)
+internal/gql       GraphQL schema, resolvers, query limits, GraphiQL
 internal/chain     LBRY blocks and transactions, claim scripts, claim IDs, RIPEMD-160
 internal/claim     claim value decoding (v2 protobuf, legacy v1 protobuf, JSON)
 internal/index     applying blocks; sync loop with reorg handling
