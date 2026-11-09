@@ -58,6 +58,7 @@ func (srv *server) search(autocomplete bool) http.HandlerFunc {
 			Size:      atoi(v.Get("size"), 20),
 			From:      atoi(v.Get("from"), 0),
 			ClaimType: v.Get("claimType"),
+			ChannelID: v.Get("channel_id"),
 			Prefix:    autocomplete,
 			Exclude:   srv.blocked(),
 		}

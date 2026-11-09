@@ -233,3 +233,53 @@ func TestLimits(t *testing.T) {
 		t.Fatal("no GraphiQL page")
 	}
 }
+
+func TestSearchInChannel(t *testing.T) {
+	api, err := New(seed(t), func() map[string]bool { return nil })
+	if err != nil {
+		t.Fatal(err)
+	}
+	h := api.Handler(false)
+	q := `query($channel: ID, $first: Int) {
+		search(text: "sailing", channel: $channel, first: $first) { nodes { id channel { id } } pageInfo { hasNextPage } }
+	}`
+	count := func(channel any) (int, bool) {
+		t.Helper()
+		res := run(t, h, q, map[string]any{"channel": channel, "first": 100})
+		ok(t, res)
+		var c conn
+		json.Unmarshal(res.Data["search"], &c)
+		for _, n := range c.Nodes {
+			if channel != nil && (n.Channel == nil || n.Channel.ID != channel) {
+				t.Fatalf("channel %v: got %s from %+v", channel, n.ID, n.Channel)
+			}
+		}
+		return len(c.Nodes), c.PageInfo.HasNextPage
+	}
+	// The spam channel's one video is staked far above the rest, but only it is in its channel.
+	if n, more := count(otherCh); n != 1 || more {
+		t.Fatalf("spam channel: %d results (more=%v), want 1", n, more)
+	}
+	if n, _ := count(chanID); n != 30 {
+		t.Fatalf("sailor channel: %d results, want 30", n)
+	}
+	if n, _ := count("3333333333333333333333333333333333333333"); n != 0 {
+		t.Fatalf("unknown channel: %d results, want 0", n)
+	}
+	// Without the argument: both channels' videos.
+	if n, _ := count(nil); n != 31 {
+		t.Fatalf("no channel: %d results, want 31", n)
+	}
+}
+
+func TestFullPage(t *testing.T) {
+	h := handler(t)
+	// 29 unblocked sailing videos: a page of 100 holds them all, and says it's the last.
+	res := run(t, h, `{ search(text: "sailing", type: STREAM, first: 100) { nodes { id } pageInfo { hasNextPage } } }`, nil)
+	ok(t, res)
+	var c conn
+	json.Unmarshal(res.Data["search"], &c)
+	if len(c.Nodes) != 29 || c.PageInfo.HasNextPage {
+		t.Fatalf("first: 100 gave %d results (more=%v), want 29 and no next page", len(c.Nodes), c.PageInfo.HasNextPage)
+	}
+}

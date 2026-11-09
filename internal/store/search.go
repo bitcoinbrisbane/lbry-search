@@ -13,6 +13,7 @@ type Query struct {
 	Text        string
 	Size, From  int
 	ClaimType   string // "stream", "channel" or "" for both
+	ChannelID   string // only claims signed by this channel, "" for any
 	MediaPrefix string // e.g. "video/" (Lighthouse's mediaType=video)
 	MaxDuration uint32 // seconds, 0 = any
 	MinDuration uint32
@@ -66,8 +67,12 @@ func (s *Store) Search(q Query) ([]Hit, error) {
 	if match == "" {
 		return nil, nil
 	}
-	if q.Size <= 0 || q.Size > 100 {
+	// Up to 100 results, plus one so GraphQL can tell whether there's another page.
+	if q.Size <= 0 {
 		q.Size = 20
+	}
+	if q.Size > 101 {
+		q.Size = 101
 	}
 	if q.Now.IsZero() {
 		q.Now = time.Now()
@@ -81,6 +86,11 @@ func (s *Store) Search(q Query) ([]Hit, error) {
 	if q.ClaimType != "" {
 		sqlText += ` AND c.type = ?`
 		args = append(args, q.ClaimType)
+	}
+	if q.ChannelID != "" {
+		// Filtered here, before the candidate pool, so a channel's claims aren't crowded out.
+		sqlText += ` AND c.channel_id = ?`
+		args = append(args, q.ChannelID)
 	}
 	if q.MediaPrefix != "" {
 		sqlText += ` AND (c.type = 'channel' OR c.media_type LIKE ?)`
