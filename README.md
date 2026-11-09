@@ -44,6 +44,7 @@ author ×1, tags and description ×0.5), then:
 GET /search?s=sailing&size=20&from=0
             [&claimType=stream|channel] [&mediaType=video|audio]
             [&maxDuration=180] [&minDuration=181]
+            [&channel_id=<claim id>]   (only that channel's claims)
 GET /autocomplete?s=sail          (last word as a prefix, up to 10 results)
 GET /status                       ({"height": …, "hash": …})
 ```
@@ -66,6 +67,7 @@ browser for GraphiQL, with the schema docs and autocompletion (`-graphiql=false`
     nodes { id title url duration thumbnail stakedDewies channel { name title } }
     pageInfo { hasNextPage endCursor }   # pass endCursor as `after` for the next page
   }
+  inChannel: search(text: "sailing", channel: "…") { nodes { title } }   # one channel's claims
   channel(id: "…") { title claims(first: 20) { nodes { title releaseTime } } }
   claim(id: "…") { title description tags languages mediaType fee { amount currency } repostOf { url } }
   autocomplete(text: "sail") { name title }

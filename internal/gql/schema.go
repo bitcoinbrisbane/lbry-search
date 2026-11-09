@@ -335,6 +335,7 @@ func (a *API) schema() (graphql.Schema, error) {
 		"first":       {Type: graphql.Int, DefaultValue: 20},
 		"after":       {Type: graphql.String},
 		"type":        {Type: claimType},
+		"channel":     {Type: graphql.ID, Description: "Only claims signed by this channel (its claim ID)."},
 		"mediaType":   {Type: graphql.String, Description: "`video`, `audio`, or a MIME prefix such as `video/mp4`."},
 		"minDuration": {Type: graphql.Int, Description: "Seconds."},
 		"maxDuration": {Type: graphql.Int, Description: "Seconds."},
@@ -438,6 +439,7 @@ func (a *API) search(p graphql.ResolveParams, prefix bool) (any, error) {
 		Size:      size + 1, // one extra to know if there's a next page
 		From:      offset,
 		ClaimType: strArg(p, "type"),
+		ChannelID: strArg(p, "channel"),
 		Prefix:    prefix,
 		Exclude:   a.blocked(),
 	}
