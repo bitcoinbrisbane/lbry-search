@@ -58,6 +58,8 @@ and `score`. `-blocklist <url>` hides claim and channel IDs from a moderation li
 `POST /graphql` (or `GET /graphql?query=…`, cached for a minute). Open `/graphql` in a
 browser for GraphiQL, with the schema docs and autocompletion (`-graphiql=false` turns it off).
 
+![GraphiQL at /graphql, searching for sailing videos](docs/graphiql.png)
+
 ```graphql
 {
   search(text: "sailing", first: 10, type: STREAM, mediaType: "video", maxDuration: 600) {
@@ -97,7 +99,9 @@ text queries here with `LBRY_SEARCH_URL`. The server opens the index read-only, 
 **Pruned nodes.** With [bitcoinbrisbane/lbcd](https://github.com/bitcoinbrisbane/lbcd)'s
 `--prune`, the indexer calls `setprunehold` as it goes (every 100 blocks and at the tip), so
 the node never deletes blocks it hasn't indexed yet. Start the indexer with the node: if the
-node has already pruned blocks the index still needs, it stops with a clear error.
+node has already pruned blocks the index still needs, it stops with a clear error. To index
+what's left anyway, start an empty index at the node's `pruneheight` with `-from <height>`:
+claims created below it aren't indexed, and their updates and supports are skipped.
 While catching up the indexer skips undo records until it's within 200 blocks of the tip.
 
 ```sh
